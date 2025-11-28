@@ -1,0 +1,18 @@
+{
+  "stocks": [
+    "300102"
+  ],
+  "update_interval": 3,
+  "always_on_top": true,
+  "window_width": 400,
+  "window_height": 40,
+  "window_x": 1358,
+  "window_y": 1165,
+  "bg_opacity": 0.35,
+  "bg_color": "#1e1e1e",
+  "show_chart": true,
+  "show_price": true,
+  "chart_fixed_percentage": true,
+  "chart_max_percentage": 10,
+  "chart_height": 120
+}
