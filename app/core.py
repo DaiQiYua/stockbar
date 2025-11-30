@@ -22,9 +22,9 @@ class Win11StockBar:
         self.root = None
         
         # 初始化各个管理器
-        self.config_manager = ConfigManager()
-        self.stock_manager = StockDataManager()
-        self.ui = None
+        self.config_manager: ConfigManager = ConfigManager()
+        self.stock_manager: StockDataManager = StockDataManager()
+        self.ui: StockBarUI = None
         
         # 加载配置
         self.load_config()

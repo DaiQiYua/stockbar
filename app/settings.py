@@ -54,9 +54,6 @@ class SettingsWindow:
         
         # 创建参数设置tab内容
         self.create_parameters_tab(settings_tab)
-        
-
-
     
     def create_stock_management_tab(self, parent):
         """创建股票管理tab页面"""
@@ -174,51 +171,159 @@ class SettingsWindow:
                 print(f"应用股票代码失败: {e}")
                 messagebox.showerror("错误", f"应用股票代码失败: {str(e)}")
         
-
-        
         tk.Button(button_frame, text="应用股票代码", command=apply_stock_codes,
                  bg='#0078d4', fg='white', font=("Microsoft YaHei", 9), padx=20).pack(side=tk.LEFT, padx=5)
     
     def create_parameters_tab(self, parent):
         """创建参数设置tab页面"""
+        # 创建主框架，包含Canvas和Scrollbar
+        main_frame = tk.Frame(parent, bg=self.settings_bg_color)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        
+        # 创建Canvas
+        canvas = tk.Canvas(main_frame, bg=self.settings_bg_color, highlightthickness=0)
+        
+        # 创建Scrollbar
+        scrollbar = tk.Scrollbar(main_frame, orient=tk.VERTICAL, command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # 创建内部框架，用于放置所有设置内容
+        content_frame = tk.Frame(canvas, bg=self.settings_bg_color)
+        
+        # 将内部框架添加到Canvas
+        canvas.create_window((0, 0), window=content_frame, anchor="nw")
+        
+        # 绑定内部框架大小变化事件，更新Canvas的滚动区域
+        content_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        
+        # 添加鼠标滚轮事件支持
+        def on_mousewheel(event):
+            """鼠标滚轮事件处理"""
+            # Windows平台
+            if event.num == 5 or event.delta < 0:
+                canvas.yview_scroll(1, "units")
+            elif event.num == 4 or event.delta > 0:
+                canvas.yview_scroll(-1, "units")
+        
+        # 绑定鼠标滚轮事件
+        canvas.bind_all("<MouseWheel>", on_mousewheel)  # Windows
+        canvas.bind_all("<Button-4>", on_mousewheel)    # Linux
+        canvas.bind_all("<Button-5>", on_mousewheel)    # Linux
+        
+        # 打包Canvas和Scrollbar
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
         # 工具栏尺寸设置
-        tk.Label(parent, text="📏 工具栏尺寸", font=("Microsoft YaHei", 11, "bold"),
+        tk.Label(content_frame, text="📏 工具栏尺寸", font=("Microsoft YaHei", 11, "bold"),
                 bg=self.settings_bg_color, fg='#333').pack(anchor='w', padx=20, pady=(15, 5))
         
-        # 窗口宽度
-        width_frame = tk.Frame(parent, bg=self.settings_bg_color)
-        width_frame.pack(fill=tk.X, padx=20, pady=5)
-        tk.Label(width_frame, text="宽度 (像素):", width=12, anchor='w', 
+        # 开启分时图时的宽度
+        width_with_chart_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
+        width_with_chart_frame.pack(fill=tk.X, padx=20, pady=5)
+        tk.Label(width_with_chart_frame, text="开启分时图宽度:", width=15, anchor='w', 
                 bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
-        self.width_var = tk.StringVar(value=str(self.config_manager.config.get('window_width', 350)))
-        width_entry = tk.Entry(width_frame, textvariable=self.width_var, width=15)
-        width_entry.pack(side=tk.LEFT, padx=5)
+        self.width_with_chart_var = tk.StringVar(value=str(self.config_manager.config.get('window_width_with_chart', 400)))
+        width_with_chart_entry = tk.Entry(width_with_chart_frame, textvariable=self.width_with_chart_var, width=15)
+        width_with_chart_entry.pack(side=tk.LEFT, padx=5)
         
-        # 宽度提示标签
-        self.width_hint_label = tk.Label(width_frame, text="", 
-                                       bg=self.settings_bg_color, fg='#666', 
-                                       font=("Microsoft YaHei", 8))
-        self.width_hint_label.pack(side=tk.LEFT, padx=5)
-        
-        
-        # 绑定提示更新
-        if hasattr(self, 'show_chart_var'):
-            self.show_chart_var.trace('w', update_width_hint)
+        # 关闭分时图时的宽度
+        width_without_chart_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
+        width_without_chart_frame.pack(fill=tk.X, padx=20, pady=5)
+        tk.Label(width_without_chart_frame, text="关闭分时图宽度:", width=15, anchor='w', 
+                bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
+        self.width_without_chart_var = tk.StringVar(value=str(self.config_manager.config.get('window_width_without_chart', 100)))
+        width_without_chart_entry = tk.Entry(width_without_chart_frame, textvariable=self.width_without_chart_var, width=15)
+        width_without_chart_entry.pack(side=tk.LEFT, padx=5)
         
         # 窗口高度
-        height_frame = tk.Frame(parent, bg=self.settings_bg_color)
+        height_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
         height_frame.pack(fill=tk.X, padx=20, pady=5)
-        tk.Label(height_frame, text="高度 (像素):", width=12, anchor='w',
+        tk.Label(height_frame, text="高度 (像素):", width=15, anchor='w',
                 bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
         self.height_var = tk.StringVar(value=str(self.config_manager.config.get('window_height', 60)))
         tk.Entry(height_frame, textvariable=self.height_var, width=15).pack(side=tk.LEFT, padx=5)
         
+        # 分时图和股票信息比例
+        ratio_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
+        ratio_frame.pack(fill=tk.X, padx=20, pady=15)
+        tk.Label(ratio_frame, text="分时图比例:", width=15, anchor='w',
+                bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
+        self.ratio_var = tk.DoubleVar(value=self.config_manager.config.get('chart_info_ratio', 0.75))
+        ratio_scale = tk.Scale(ratio_frame, from_=0.1, to=0.9, resolution=0.05,
+                               orient=tk.HORIZONTAL, variable=self.ratio_var,
+                               bg=self.settings_bg_color, fg='#333', highlightthickness=0, length=200)
+        ratio_scale.pack(side=tk.LEFT, padx=5)
+        # self.ratio_label = tk.Label(ratio_frame, text=f"{self.ratio_var.get():.2f}", 
+        #                            bg=self.settings_bg_color, fg='#333',
+        #                            font=("Consolas", 9))
+        # self.ratio_label.pack(side=tk.LEFT, padx=5)
+        
+        # 字体大小设置
+        tk.Label(content_frame, text="📝 字体大小", font=("Microsoft YaHei", 11, "bold"),
+                bg=self.settings_bg_color, fg='#333').pack(anchor='w', padx=20, pady=(15, 5))
+        
+        # 字体大小调整辅助函数
+        def adjust_font_size(var, delta):
+            """调整字体大小"""
+            try:
+                current_size = int(var.get())
+                new_size = current_size + delta  # 取消字体大小限制
+                var.set(str(new_size))
+            except ValueError:
+                var.set("12")  # 恢复默认值
+        
+        # 股票名称字体大小
+        name_font_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
+        name_font_frame.pack(fill=tk.X, padx=20, pady=5)
+        tk.Label(name_font_frame, text="股票名称字体:", width=15, anchor='w',
+                bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
+        self.font_size_name_var = tk.StringVar(value=str(self.config_manager.config.get('font_size_name', 12)))
+        name_font_entry = tk.Entry(name_font_frame, textvariable=self.font_size_name_var, width=15)
+        name_font_entry.pack(side=tk.LEFT, padx=5)
+        
+        # 添加增减按钮
+        tk.Button(name_font_frame, text="-", width=3, command=lambda: adjust_font_size(self.font_size_name_var, -1),
+                 bg='#f0f0f0', fg='#333', font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=2)
+        tk.Button(name_font_frame, text="+", width=3, command=lambda: adjust_font_size(self.font_size_name_var, 1),
+                 bg='#f0f0f0', fg='#333', font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=2)
+        
+        # 股票价格字体大小
+        price_font_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
+        price_font_frame.pack(fill=tk.X, padx=20, pady=5)
+        tk.Label(price_font_frame, text="股票价格字体:", width=15, anchor='w',
+                bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
+        self.font_size_price_var = tk.StringVar(value=str(self.config_manager.config.get('font_size_price', 12)))
+        price_font_entry = tk.Entry(price_font_frame, textvariable=self.font_size_price_var, width=15)
+        price_font_entry.pack(side=tk.LEFT, padx=5)
+        
+        # 添加增减按钮
+        tk.Button(price_font_frame, text="-", width=3, command=lambda: adjust_font_size(self.font_size_price_var, -1),
+                 bg='#f0f0f0', fg='#333', font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=2)
+        tk.Button(price_font_frame, text="+", width=3, command=lambda: adjust_font_size(self.font_size_price_var, 1),
+                 bg='#f0f0f0', fg='#333', font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=2)
+        
+        # 涨跌幅字体大小
+        change_font_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
+        change_font_frame.pack(fill=tk.X, padx=20, pady=5)
+        tk.Label(change_font_frame, text="涨跌幅字体:", width=15, anchor='w',
+                bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
+        self.font_size_change_var = tk.StringVar(value=str(self.config_manager.config.get('font_size_change', 12)))
+        change_font_entry = tk.Entry(change_font_frame, textvariable=self.font_size_change_var, width=15)
+        change_font_entry.pack(side=tk.LEFT, padx=5)
+        
+        # 添加增减按钮
+        tk.Button(change_font_frame, text="-", width=3, command=lambda: adjust_font_size(self.font_size_change_var, -1),
+                 bg='#f0f0f0', fg='#333', font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=2)
+        tk.Button(change_font_frame, text="+", width=3, command=lambda: adjust_font_size(self.font_size_change_var, 1),
+                 bg='#f0f0f0', fg='#333', font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=2)
+        
         # 外观设置
-        tk.Label(parent, text="🎨 外观设置", font=("Microsoft YaHei", 11, "bold"),
+        tk.Label(content_frame, text="🎨 外观设置", font=("Microsoft YaHei", 11, "bold"),
                 bg=self.settings_bg_color, fg='#333').pack(anchor='w', padx=20, pady=(15, 5))
         
         # 透明度设置
-        opacity_frame = tk.Frame(parent, bg=self.settings_bg_color)
+        opacity_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
         opacity_frame.pack(fill=tk.X, padx=20, pady=5)
         tk.Label(opacity_frame, text="透明度:", width=12, anchor='w',
                 bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
@@ -229,8 +334,20 @@ class SettingsWindow:
                                command=lambda v: self.opacity_var.set(f"{float(v):.2f}"))
         opacity_scale.pack(side=tk.LEFT, padx=5)
         
+        # 盘口透明度设置
+        pankou_opacity_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
+        pankou_opacity_frame.pack(fill=tk.X, padx=20, pady=5)
+        tk.Label(pankou_opacity_frame, text="盘口透明度:", width=12, anchor='w',
+                bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
+        self.pankou_opacity_var = tk.StringVar(value=str(self.config_manager.config.get('pankou_opacity', 0.95)))
+        pankou_opacity_scale = tk.Scale(pankou_opacity_frame, from_=0.1, to=1.0, resolution=0.05,
+                               orient=tk.HORIZONTAL, variable=tk.DoubleVar(value=self.config_manager.config.get('pankou_opacity', 0.95)),
+                               bg=self.settings_bg_color, fg='#333', highlightthickness=0, length=150,
+                               command=lambda v: self.pankou_opacity_var.set(f"{float(v):.2f}"))
+        pankou_opacity_scale.pack(side=tk.LEFT, padx=5)
+        
         # 背景颜色设置
-        color_frame = tk.Frame(parent, bg=self.settings_bg_color)
+        color_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
         color_frame.pack(fill=tk.X, padx=20, pady=5)
         tk.Label(color_frame, text="背景颜色:", width=12, anchor='w',
                 bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
@@ -262,11 +379,11 @@ class SettingsWindow:
         
         
         # 功能设置
-        tk.Label(parent, text="⚙️ 功能设置", font=("Microsoft YaHei", 11, "bold"),
+        tk.Label(content_frame, text="⚙️ 功能设置", font=("Microsoft YaHei", 11, "bold"),
                 bg=self.settings_bg_color, fg='#333').pack(anchor='w', padx=20, pady=(15, 5))
         
         # 更新间隔
-        interval_frame = tk.Frame(parent, bg=self.settings_bg_color)
+        interval_frame = tk.Frame(content_frame, bg=self.settings_bg_color)
         interval_frame.pack(fill=tk.X, padx=20, pady=5)
         tk.Label(interval_frame, text="更新间隔 (秒):", width=12, anchor='w',
                 bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
@@ -275,50 +392,35 @@ class SettingsWindow:
         
         # 置顶设置
         self.top_var = tk.BooleanVar(value=self.config_manager.config.get('always_on_top', True))
-        tk.Checkbutton(parent, text="窗口始终置顶", variable=self.top_var,
+        tk.Checkbutton(content_frame, text="窗口始终置顶", variable=self.top_var,
                       bg=self.settings_bg_color, fg='#333', selectcolor=self.settings_bg_color,
                       font=("Microsoft YaHei", 9)).pack(anchor='w', padx=20, pady=5)
         
         # 股票信息显示设置
-        tk.Label(parent, text="📊 股票信息显示", font=("Microsoft YaHei", 11, "bold"),
+        tk.Label(content_frame, text="📊 股票信息显示", font=("Microsoft YaHei", 11, "bold"),
                 bg=self.settings_bg_color, fg='#333').pack(anchor='w', padx=20, pady=(15, 5))
         
         # 显示现价设置
         self.show_price_var = tk.BooleanVar(value=self.config_manager.config.get('show_price', True))
-        tk.Checkbutton(parent, text="显示现价", variable=self.show_price_var,
+        tk.Checkbutton(content_frame, text="显示现价", variable=self.show_price_var,
                       bg=self.settings_bg_color, fg='#333', selectcolor=self.settings_bg_color,
                       font=("Microsoft YaHei", 9)).pack(anchor='w', padx=20, pady=5)
         
         # 分时图设置
-        tk.Label(parent, text="📈 分时图设置", font=("Microsoft YaHei", 11, "bold"),
+        tk.Label(content_frame, text="📈 分时图设置", font=("Microsoft YaHei", 11, "bold"),
                 bg=self.settings_bg_color, fg='#333').pack(anchor='w', padx=20, pady=(15, 5))
         
         # 分时图开关
         self.show_chart_var = tk.BooleanVar(value=self.config_manager.config.get('show_chart', True))
-        tk.Checkbutton(parent, text="显示分时图", variable=self.show_chart_var,
+        tk.Checkbutton(content_frame, text="显示分时图", variable=self.show_chart_var,
                       bg=self.settings_bg_color, fg='#333', selectcolor=self.settings_bg_color,
                       font=("Microsoft YaHei", 9)).pack(anchor='w', padx=20, pady=5)
         
         # 固定最大百分比显示
         self.fixed_percentage_var = tk.BooleanVar(value=self.config_manager.config.get('chart_fixed_percentage', True))
-        tk.Checkbutton(parent, text="固定最大百分比显示", variable=self.fixed_percentage_var,
+        tk.Checkbutton(content_frame, text="固定最大百分比显示", variable=self.fixed_percentage_var,
                       bg=self.settings_bg_color, fg='#333', selectcolor=self.settings_bg_color,
                       font=("Microsoft YaHei", 9)).pack(anchor='w', padx=20, pady=5)
-        
-        # 最大百分比设置
-        percentage_frame = tk.Frame(parent, bg=self.settings_bg_color)
-        percentage_frame.pack(fill=tk.X, padx=20, pady=5)
-        tk.Label(percentage_frame, text="最大百分比 (%):", width=12, anchor='w',
-                bg=self.settings_bg_color, fg='#333').pack(side=tk.LEFT)
-        self.max_percentage_var = tk.StringVar(value=str(self.config_manager.config.get('chart_max_percentage', 10)))
-        percentage_options = ['5', '10', '20', '30', '50']
-        self.max_percentage_combo = ttk.Combobox(percentage_frame, textvariable=self.max_percentage_var, 
-                                             values=percentage_options, width=10, state='readonly')
-        self.max_percentage_combo.pack(side=tk.LEFT, padx=5)
-        
-        # 说明文字
-        tk.Label(parent, text="说明：主板股票通常用10%，科创/创业板用20%，ST股用5%",
-                font=("Microsoft YaHei", 8), bg=self.settings_bg_color, fg='#666').pack(anchor='w', padx=20, pady=(5, 0))
         
         # 绑定实时更新事件
         self.bind_realtime_updates()
@@ -357,9 +459,14 @@ class SettingsWindow:
                 
                 # 获取当前值并进行验证
                 try:
-                    new_width = int(self.width_var.get()) if self.width_var.get() else self.config_manager.config.get('window_width', 350)
+                    new_width_with_chart = int(self.width_with_chart_var.get()) if self.width_with_chart_var.get() else self.config_manager.config.get('window_width_with_chart', 400)
                 except:
-                    new_width = self.config_manager.config.get('window_width', 350)
+                    new_width_with_chart = self.config_manager.config.get('window_width_with_chart', 400)
+                
+                try:
+                    new_width_without_chart = int(self.width_without_chart_var.get()) if self.width_without_chart_var.get() else self.config_manager.config.get('window_width_without_chart', 100)
+                except:
+                    new_width_without_chart = self.config_manager.config.get('window_width_without_chart', 100)
                 
                 try:
                     new_height = int(self.height_var.get()) if self.height_var.get() else self.config_manager.config.get('window_height', 60)
@@ -372,28 +479,62 @@ class SettingsWindow:
                 except:
                     new_opacity = self.config_manager.config.get('bg_opacity', 0.95)
                 
+                try:
+                    new_pankou_opacity = float(self.pankou_opacity_var.get()) if hasattr(self, 'pankou_opacity_var') and self.pankou_opacity_var.get() else self.config_manager.config.get('pankou_opacity', 0.95)
+                    new_pankou_opacity = max(0.1, min(1.0, new_pankou_opacity))
+                except:
+                    new_pankou_opacity = self.config_manager.config.get('pankou_opacity', 0.95)
+                
+                try:
+                    new_ratio = self.ratio_var.get() if hasattr(self, 'ratio_var') else self.config_manager.config.get('chart_info_ratio', 0.75)
+                except:
+                    new_ratio = self.config_manager.config.get('chart_info_ratio', 0.75)
+                
+                try:
+                    new_font_size_name = int(self.font_size_name_var.get()) if self.font_size_name_var.get() else self.config_manager.config.get('font_size_name', 12)
+                except:
+                    new_font_size_name = self.config_manager.config.get('font_size_name', 12)
+                
+                try:
+                    new_font_size_price = int(self.font_size_price_var.get()) if self.font_size_price_var.get() else self.config_manager.config.get('font_size_price', 12)
+                except:
+                    new_font_size_price = self.config_manager.config.get('font_size_price', 12)
+                
+                try:
+                    new_font_size_change = int(self.font_size_change_var.get()) if self.font_size_change_var.get() else self.config_manager.config.get('font_size_change', 12)
+                except:
+                    new_font_size_change = self.config_manager.config.get('font_size_change', 12)
+                
                 new_color = self.color_var.get() if self.color_var.get() else self.config_manager.config.get('bg_color', '#1e1e1e')
                 new_top = self.top_var.get() if hasattr(self, 'top_var') else self.config_manager.config.get('always_on_top', True)
                 new_show_chart = self.show_chart_var.get() if hasattr(self, 'show_chart_var') else self.config_manager.config.get('show_chart', True)
                 new_show_price = self.show_price_var.get() if hasattr(self, 'show_price_var') else self.config_manager.config.get('show_price', True)
                 
+                # 根据当前分时图状态选择合适的宽度
+                if new_show_chart:
+                    new_width = new_width_with_chart
+                else:
+                    new_width = new_width_without_chart
+                
                 # 更新配置管理器
                 self.config_manager.config['window_width'] = new_width
                 self.config_manager.config['window_height'] = new_height
+                self.config_manager.config['window_width_with_chart'] = new_width_with_chart
+                self.config_manager.config['window_width_without_chart'] = new_width_without_chart
                 self.config_manager.config['bg_opacity'] = new_opacity
+                self.config_manager.config['pankou_opacity'] = new_pankou_opacity
                 self.config_manager.config['bg_color'] = new_color
                 self.config_manager.config['always_on_top'] = new_top
                 self.config_manager.config['show_chart'] = new_show_chart
                 self.config_manager.config['show_price'] = new_show_price
+                self.config_manager.config['chart_info_ratio'] = new_ratio
+                self.config_manager.config['font_size_name'] = new_font_size_name
+                self.config_manager.config['font_size_price'] = new_font_size_price
+                self.config_manager.config['font_size_change'] = new_font_size_change
                 
                 # 更新分时图配置
                 if hasattr(self, 'fixed_percentage_var'):
                     self.config_manager.config['chart_fixed_percentage'] = self.fixed_percentage_var.get()
-                if hasattr(self, 'max_percentage_var'):
-                    try:
-                        self.config_manager.config['chart_max_percentage'] = int(self.max_percentage_var.get())
-                    except:
-                        self.config_manager.config['chart_max_percentage'] = 10
                 
                 # 保存配置到文件
                 self.config_manager.save_config()
@@ -450,8 +591,10 @@ class SettingsWindow:
             self.color_var.trace('w', on_color_change)
         if hasattr(self, 'opacity_var'):
             self.opacity_var.trace('w', lambda *args: apply_realtime_changes())
-        if hasattr(self, 'width_var'):
-            self.width_var.trace('w', lambda *args: apply_realtime_changes())
+        if hasattr(self, 'width_with_chart_var'):
+            self.width_with_chart_var.trace('w', lambda *args: apply_realtime_changes())
+        if hasattr(self, 'width_without_chart_var'):
+            self.width_without_chart_var.trace('w', lambda *args: apply_realtime_changes())
         if hasattr(self, 'height_var'):
             self.height_var.trace('w', lambda *args: apply_realtime_changes())
         if hasattr(self, 'top_var'):
@@ -460,28 +603,21 @@ class SettingsWindow:
             self.interval_var.trace('w', lambda *args: apply_interval_change())
         if hasattr(self, 'show_chart_var'):
             def on_show_chart_change(*args):
-                # 获取当前状态和用户设置的宽度
+                # 获取当前状态
                 current_show_chart = self.show_chart_var.get()
-                # 使用用户设置的宽度，而不是当前实际宽度
-                user_set_width = int(self.width_var.get()) if self.width_var.get() else self.config_manager.config.get('window_width', 350)
                 
-                # 计算新宽度
+                # 使用用户设置的固定宽度
                 if current_show_chart:
                     # 从"未开启分时图"切换到"开启分时图"
-                    # 用户设置的宽度是未开启分时图时的宽度（股票信息区域，25%）
-                    # 开启分时图后，总宽度应该是：用户设置的宽度 / 0.25
-                    new_width = int(user_set_width / 0.25)
+                    new_width = int(self.width_with_chart_var.get()) if self.width_with_chart_var.get() else self.config_manager.config.get('window_width_with_chart', 400)
                 else:
                     # 从"开启分时图"切换到"未开启分时图"
-                    # 用户设置的宽度是开启分时图时的总宽度
-                    # 关闭分时图后，宽度应该是：用户设置的宽度 * 0.25
-                    new_width = int(user_set_width * 0.25)
+                    new_width = int(self.width_without_chart_var.get()) if self.width_without_chart_var.get() else self.config_manager.config.get('window_width_without_chart', 100)
                 
                 # 确保新宽度至少为100px
                 new_width = max(new_width, 100)
                 
                 # 应用新宽度
-                self.width_var.set(str(new_width))
                 self.config_manager.config['window_width'] = new_width
                 
                 # 直接保存配置到文件，确保新宽度被写入
@@ -514,6 +650,42 @@ class SettingsWindow:
                     self.window.after(100, delayed_recreate)
             self.show_price_var.trace('w', on_show_price_change)
         
+        # 绑定比例条变化事件，实时更新标签
+        if hasattr(self, 'ratio_var'):
+            def on_ratio_change(*args):
+                # 更新比例标签
+                self.ratio_label.configure(text=f"{self.ratio_var.get():.2f}")
+                # 应用变化
+                apply_realtime_changes()
+                # 重新创建UI
+                if self.main_ui and hasattr(self.main_ui, 'recreate_ui'):
+                    def delayed_recreate():
+                        try:
+                            self.main_ui.recreate_ui()
+                        except Exception as e:
+                            print(f"延迟重新创建UI失败: {e}")
+                    self.window.after(100, delayed_recreate)
+            self.ratio_var.trace('w', on_ratio_change)
+        
+        # 绑定字体大小变化事件
+        def on_font_size_change(*args):
+            apply_realtime_changes()
+            # 字体大小变化需要重新创建UI
+            if self.main_ui and hasattr(self.main_ui, 'recreate_ui'):
+                def delayed_recreate():
+                    try:
+                        self.main_ui.recreate_ui()
+                    except Exception as e:
+                        print(f"延迟重新创建UI失败: {e}")
+                self.window.after(100, delayed_recreate)
+        
+        if hasattr(self, 'font_size_name_var'):
+            self.font_size_name_var.trace('w', on_font_size_change)
+        if hasattr(self, 'font_size_price_var'):
+            self.font_size_price_var.trace('w', on_font_size_change)
+        if hasattr(self, 'font_size_change_var'):
+            self.font_size_change_var.trace('w', on_font_size_change)
+        
         # 绑定新的分时图配置项
         if hasattr(self, 'fixed_percentage_var'):
             def on_fixed_percentage_change(*args):
@@ -522,10 +694,3 @@ class SettingsWindow:
                 if self.main_ui and hasattr(self.main_ui, 'current_stock') and self.main_ui.current_stock:
                     self.main_ui.draw_chart(self.main_ui.current_stock)
             self.fixed_percentage_var.trace('w', on_fixed_percentage_change)
-        if hasattr(self, 'max_percentage_var'):
-            def on_max_percentage_change(*args):
-                apply_realtime_changes()
-                # 强制重新绘制图表
-                if self.main_ui and hasattr(self.main_ui, 'current_stock') and self.main_ui.current_stock:
-                    self.main_ui.draw_chart(self.main_ui.current_stock)
-            self.max_percentage_var.trace('w', on_max_percentage_change)

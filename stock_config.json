@@ -1,18 +1,25 @@
 {
   "stocks": [
-    "300102"
+    "600748",
+    "002792"
   ],
   "update_interval": 3,
   "always_on_top": true,
-  "window_width": 400,
+  "window_width": 300,
   "window_height": 40,
-  "window_x": 1358,
-  "window_y": 1165,
-  "bg_opacity": 0.35,
-  "bg_color": "#1e1e1e",
+  "window_x": 1689,
+  "window_y": 1400,
+  "window_width_with_chart": 300,
+  "window_width_without_chart": 70,
+  "bg_opacity": 0.5,
+  "bg_color": "#46008c",
+  "chart_info_ratio": 0.8,
+  "font_size_name": 8,
+  "font_size_price": 5,
+  "font_size_change": 7,
   "show_chart": true,
   "show_price": true,
-  "chart_fixed_percentage": true,
-  "chart_max_percentage": 10,
-  "chart_height": 120
+  "chart_fixed_percentage": false,
+  "chart_height": 120,
+  "pankou_opacity": 0.95
 }

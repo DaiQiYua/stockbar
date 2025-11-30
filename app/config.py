@@ -37,10 +37,16 @@ class ConfigManager:
             'window_height': 48,
             'window_x': None,
             'window_y': None,
+            'window_width_with_chart': 400,
+            'window_width_without_chart': 100,
             
             # 外观配置
             'bg_opacity': 0.95,
             'bg_color': '#1e1e1e',
+            'chart_info_ratio': 0.75,
+            'font_size_name': 12,
+            'font_size_price': 12,
+            'font_size_change': 12,
             
             # 显示配置
             'show_chart': True,
@@ -48,8 +54,10 @@ class ConfigManager:
             
             # 分时图配置
             'chart_fixed_percentage': True,
-            'chart_max_percentage': 10,
             'chart_height': 120,
+            
+            # 盘口配置
+            'pankou_opacity': 0.95,
         }
     
     def load_config(self):
@@ -191,20 +199,20 @@ class ConfigManager:
             'bg_color': self.config.get('bg_color', '#1e1e1e'),
             'show_chart': self.config.get('show_chart', True),
             'chart_height': self.config.get('chart_height', 120),
-            'always_on_top': self.config.get('always_on_top', True)
+            'always_on_top': self.config.get('always_on_top', True),
+            'pankou_opacity': self.config.get('pankou_opacity', 0.95)
         }
     
     def set_appearance_settings(self, settings):
         """设置外观设置"""
         for key, value in settings.items():
-            if key in ['bg_opacity', 'bg_color', 'show_chart', 'chart_height', 'always_on_top']:
+            if key in ['bg_opacity', 'bg_color', 'show_chart', 'chart_height', 'always_on_top', 'pankou_opacity']:
                 self.config[key] = value
     
     def get_chart_settings(self):
         """获取分时图设置"""
         return {
             'fixed_percentage': self.config.get('chart_fixed_percentage', True),
-            'max_percentage': self.config.get('chart_max_percentage', 10),
             'show_chart': self.config.get('show_chart', True)
         }
     
@@ -213,7 +221,5 @@ class ConfigManager:
         for key, value in settings.items():
             if key == 'fixed_percentage':
                 self.config['chart_fixed_percentage'] = value
-            elif key == 'max_percentage':
-                self.config['chart_max_percentage'] = value
             elif key == 'show_chart':
                 self.config['show_chart'] = value

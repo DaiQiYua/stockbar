@@ -10,12 +10,13 @@ from tkinter import Menu, messagebox
 import tkinter.font
 from .settings import SettingsWindow
 from .utils import calculate_luminance, get_contrast_color, update_text_label
-
+from .config import ConfigManager
+from .stock import StockDataManager
 
 class StockBarUI:
     """股票工具栏UI界面"""
     
-    def __init__(self, root, config_manager, stock_manager):
+    def __init__(self, root, config_manager: 'ConfigManager', stock_manager: 'StockDataManager'):
         self.root = root
         self.config_manager = config_manager
         self.stock_manager = stock_manager
@@ -174,10 +175,11 @@ class StockBarUI:
         # 根据背景颜色智能选择字体颜色
         self.text_color = get_contrast_color(bg_color)
         
-        # 创建主框架
+        # 创建主框架，设置固定宽度
         self.main_frame = tk.Frame(self.root, bg=bg_color, relief=tk.FLAT, bd=0, 
-                            highlightthickness=1, highlightbackground=bg_color)
+                            highlightthickness=1, highlightbackground=bg_color, width=self.window_width)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        self.main_frame.pack_propagate(False)
         
         # 为所有可见组件添加鼠标悬停事件
         self.bind_mouse_events(self.main_frame)
@@ -194,12 +196,10 @@ class StockBarUI:
         # 计算合理的布局尺寸
         window_width = self.window_width
         
-        # 固定比例分配：分时图75%，股票信息25%
-        chart_width = int(window_width * 0.75)
-        info_width = int(window_width * 0.25)
-        
-        # 保存当前的信息区域比例，用于切换分时图显示状态时的宽度计算
-        self.info_ratio = 0.25  # 固定比例
+        # 使用配置的比例分配：分时图chart_info_ratio%，股票信息(1-chart_info_ratio)%
+        chart_info_ratio = self.config_manager.config.get('chart_info_ratio', 0.75)
+        chart_width = int(window_width * chart_info_ratio)
+        info_width = window_width - chart_width
         
         # 分时图区域（左侧）
         self.chart_frame = tk.Frame(parent, bg=bg_color, width=chart_width)
@@ -226,13 +226,14 @@ class StockBarUI:
         # 创建股票信息标签
         self._create_stock_labels(self.info_frame, bg_color)
 
-        
-        
     
     def create_simple_mode(self, parent, bg_color):
         """创建传统模式界面"""
         # 传统模式只显示信息，不显示分时图
         # 使用与分时图模式相同的Text控件显示方式
+        
+        # 设置父框架不根据子组件大小自动调整大小
+        parent.pack_propagate(False)
         
         # 创建股票信息标签
         self._create_stock_labels(parent, bg_color)
@@ -265,9 +266,12 @@ class StockBarUI:
                 ("stock_change_label", "+0.00%", "change", "normal", '#00ff00')
             ]
         
-        # 根据实际显示的标签数量动态计算字体大小
-        label_count = len(filtered_labels_info)
-        font_sizes = self.calculate_font_sizes(label_count)
+        # 使用配置的字体大小
+        font_sizes = {
+            'name': self.config_manager.config.get('font_size_name', 12),
+            'price': self.config_manager.config.get('font_size_price', 12),
+            'change': self.config_manager.config.get('font_size_change', 12)
+        }
         
         # 创建Text控件用于显示股票信息
         for label_attr, text, font_key, font_weight, fg_color in filtered_labels_info:
@@ -413,7 +417,7 @@ class StockBarUI:
     
     def draw_chart(self, stock):
         """绘制分时图"""
-        if not self.chart_canvas:
+        if not hasattr(self, 'chart_canvas') or not self.chart_canvas:
             return
         
         try:
@@ -448,16 +452,9 @@ class StockBarUI:
             print(f"绘制分时图失败: {e}")
     
     def get_stock_type_info(self, stock_symbol):
-        """获取股票类型信息，返回最大涨跌幅限制"""
+        """根据股票代码获取股票类型信息（最大涨跌幅）"""
         if not stock_symbol:
             return 10  # 默认10%
-        
-        # 获取配置
-        fixed_percentage = self.config_manager.config.get('chart_fixed_percentage', True)
-        default_max_percentage = self.config_manager.config.get('chart_max_percentage', 10)
-        
-        if not fixed_percentage:
-            return default_max_percentage
         
         # 根据股票代码前缀判断类型
         # 首先检查是否为ST股票（优先级最高）
@@ -468,7 +465,7 @@ class StockBarUI:
         elif stock_symbol.startswith(('600', '000', '001', '002', '003')):
             return 10  # 主板股票
         else:
-            return default_max_percentage  # 其他类型使用默认值
+            return 10  # 其他类型默认10%
     
     def get_yesterday_close_price(self, stock):
         """获取昨日收盘价"""
@@ -722,22 +719,21 @@ class StockBarUI:
     
     def calculate_font_sizes(self, label_count=3):
         """根据窗口高度和标签数量动态计算字体大小（字体高度）"""
-        # 计算每个标签可用的实际高度
-        label_height = int(self.window_height / label_count)
-        
-        # 字体大小应该小于标签高度，为文字上下留出空间
-        # 进一步减小比例，确保所有标签都能显示
-        base_font_size = int(label_height * 0.5)
-        
+        # 使用配置的字体大小，忽略自动计算
         return {
-            'name': base_font_size,
-            'price': base_font_size,
-            'change': base_font_size
+            'name': self.config_manager.config.get('font_size_name', 12),
+            'price': self.config_manager.config.get('font_size_price', 12),
+            'change': self.config_manager.config.get('font_size_change', 12)
         }
     
     def update_font_sizes(self):
         """实时更新字体大小"""
-        font_sizes = self.calculate_font_sizes()
+        # 使用配置的字体大小
+        font_sizes = {
+            'name': self.config_manager.config.get('font_size_name', 12),
+            'price': self.config_manager.config.get('font_size_price', 12),
+            'change': self.config_manager.config.get('font_size_change', 12)
+        }
         appearance = self.config_manager.get_appearance_settings()
         
         if not appearance['show_chart']:
@@ -798,30 +794,32 @@ class StockBarUI:
             label.pack(fill=tk.BOTH, expand=True)
     
     def update_layout_ratio(self):
-        """根据固定比例重新计算布局"""
+        """根据配置的比例重新计算布局"""
         try:
+            # 检查组件是否存在，避免访问已销毁的组件
+            if not hasattr(self, 'chart_frame') or not self.chart_frame:
+                return
+            if not hasattr(self, 'info_frame') or not self.info_frame:
+                return
+            
             # 获取当前窗口宽度
             window_width = self.window_width
             
-            # 固定比例分配：分时图75%，股票信息25%
-            chart_width = int(window_width * 0.75)
-            info_width = int(window_width * 0.25)
-            
-            # 保存当前的信息区域比例，用于切换分时图显示状态时的宽度计算
-            self.info_ratio = 0.25  # 固定比例
+            # 使用配置的比例分配：分时图chart_info_ratio%，股票信息(1-chart_info_ratio)%
+            chart_info_ratio = self.config_manager.config.get('chart_info_ratio', 0.75)
+            chart_width = int(window_width * chart_info_ratio)
+            info_width = window_width - chart_width
             
             # 更新实际的框架宽度
             self.chart_frame.config(width=chart_width)
             self.info_frame.config(width=info_width)
             
             # 重新绘制分时图
-            if hasattr(self, 'current_stock') and self.current_stock and hasattr(self, 'chart_canvas'):
+            if hasattr(self, 'current_stock') and self.current_stock and hasattr(self, 'chart_canvas') and self.chart_canvas:
                 self.draw_chart(self.current_stock)
                 
         except Exception as e:
             print(f"更新布局比例失败: {e}")
-    
-
     
     def show_settings(self):
         """显示设置窗口"""
@@ -845,9 +843,15 @@ class StockBarUI:
     def recreate_ui(self):
         """重新创建UI界面"""
         if self.root:
-            # 保存当前位置
+            # 保存当前窗口的实际大小和位置
+            current_width = self.root.winfo_width()
+            current_height = self.root.winfo_height()
             current_x = self.root.winfo_x()
             current_y = self.root.winfo_y()
+            
+            # 更新self.window_width和self.window_height为当前窗口的实际大小
+            self.window_width = current_width
+            self.window_height = current_height
             
             # 获取当前配置中的背景颜色
             appearance = self.config_manager.get_appearance_settings()
@@ -855,6 +859,12 @@ class StockBarUI:
             
             # 更新主窗口背景颜色
             self.root.configure(bg=bg_color)
+            
+            # 重置所有UI组件属性为None，避免访问已销毁的组件
+            self.main_frame = None
+            self.chart_frame = None
+            self.info_frame = None
+            self.chart_canvas = None
             
             # 获取当前所有子组件，排除Toplevel窗口（如设置窗口）
             children_to_destroy = []
@@ -874,8 +884,8 @@ class StockBarUI:
             self.make_draggable(self.root)
             self.create_context_menu()
             
-            # 恢复位置
-            self.root.geometry(f"+{current_x}+{current_y}")
+            # 恢复大小和位置
+            self.root.geometry(f"{current_width}x{current_height}+{current_x}+{current_y}")
             
             # 立即更新股票显示，确保新UI显示最新数据
             if hasattr(self, 'current_stock') and self.current_stock:
@@ -901,10 +911,9 @@ class StockBarUI:
         if not self.current_stock:
             return
         
-        # 获取主界面的透明度，盘口UI透明度为主界面的两倍
+        # 获取盘口透明度配置
         appearance = self.config_manager.get_appearance_settings()
-        main_alpha = appearance.get('alpha', 1.0)  # 默认1.0（不透明）
-        pankou_alpha = min(main_alpha * 2, 1.0)  # 最多不超过1.0
+        pankou_alpha = appearance.get('pankou_opacity', 0.95)  # 使用单独的盘口透明度设置
         
         # 设置窗口样式
         bg_color = self.config_manager.get_appearance_settings()['bg_color']

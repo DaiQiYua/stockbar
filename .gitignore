@@ -1,0 +1,47 @@
+# 编译生成的文件和目录
+__pycache__/
+build/
+dist/
+*.spec
+*.exe
+*.pyd
+*.dll
+
+# 配置文件
+stock_config.json
+
+# IDE相关文件
+.vscode/
+.trae/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志文件
+*.log
+logs/
+
+# 其他临时文件
+*.tmp
+*.temp
+*.bak
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 虚拟环境
+venv/
+env/
+.venv/
+.env/
+
+# 测试文件
+.test/
+*.pyc
+
+# 打包文件
+*.zip
+*.tar.gz
+*.tar.bz2

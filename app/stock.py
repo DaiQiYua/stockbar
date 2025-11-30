@@ -517,7 +517,8 @@ class StockDataManager:
             if not stock_name:
                 return None
             
-            url = f"http://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&fid=f3&fs=m:0+t:6,m:0+t:13,m:0+t:80,m:1+t:2,m:1+t:23&fields=f12,f14&f12=6&f14={stock_name}"
+            # 使用正确的东方财富搜索API
+            url = f"https://searchapi.eastmoney.com/api/suggest/get?input={stock_name}&type=14&token=D43BF722C8E33BDC906FB84D85E326E8&count=10"
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Referer': 'https://quote.eastmoney.com/',
@@ -528,11 +529,12 @@ class StockDataManager:
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get('data') and data['data'].get('diff'):
-                    diff = data['data']['diff']
-                    for stock_info in diff:
-                        code = stock_info.get('f12')
-                        name = stock_info.get('f14')
+                if data.get('QuotationCodeTable') and data['QuotationCodeTable'].get('Data'):
+                    stock_list = data['QuotationCodeTable']['Data']
+                    for stock_info in stock_list:
+                        code = stock_info.get('Code')
+                        name = stock_info.get('Name')
+                        # 确保是A股股票（6位数字代码）
                         if code and name and isinstance(code, str) and code.isdigit() and len(code) == 6:
                             logger.info(f"从东方财富搜索到股票: {name} ({code})")
                             return code
