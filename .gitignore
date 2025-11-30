@@ -1,5 +1,6 @@
 # 编译生成的文件和目录
 __pycache__/
+app/__pycache__/
 build/
 dist/
 *.spec
